@@ -10,11 +10,8 @@ const { emit } = require("process");
 let app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-let name = "";
 const myArgs = process.argv.slice(2);
 
-var prompt = require('prompt');
-prompt.start();
 
 
 const prompts = readline.createInterface(process.stdin, process.stdout);
@@ -43,9 +40,7 @@ function serveExpress() {
   app.get("/", async function (req, res) {
     if(req.cookies.name == undefined || req.cookies.name === "")
     {
-
-        prompt.get(['username'], function (err, result) {
-            let val = result.name;
+        let val = prompt("Enter your name", "");
             if(val.length !== 0) {
                 popupS.alert({
                     content: 'Hello, ' + val
@@ -73,7 +68,6 @@ function serveExpress() {
                     sameSite: 'lax'
                 });
             }
-          });
     }
     MongoClient.connect(
         url,
@@ -160,7 +154,7 @@ function serveExpress() {
         let db = client.db(process.env.MONGO_DB_NAME);
         let collection = db.collection(process.env.MONGO_COLLECTION);
         collection.insertOne(
-            { name: name, message:message },
+            { name: req.cookies.name, message:message },
             (err, result) => {}
           );
           emit("/", req.body);
