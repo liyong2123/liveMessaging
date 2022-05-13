@@ -37,37 +37,28 @@ function serveExpress() {
 
   var port = process.env.PORT || Number(myArgs[0]);
 
+
+//    let val = prompt("Enter your name", "");
+//             
+
+app.get("/name", async function (req, res) {
+    res.render(path.join(__dirname, "./templates/name.ejs"));
+});
+
+app.post("/name", async function (req, res) {
+    let name = req.body.name;
+
+    res.cookie("name",name);
+
+    return res.redirect('/');
+});
+
   app.get("/", async function (req, res) {
-    if(req.cookies.name == undefined || req.cookies.name === "")
+      console.log(req.cookies.name);
+    if(!req.cookies.name|| req.cookies.name === "")
     {
-        let val = prompt("Enter your name", "");
-            if(val.length !== 0) {
-                popupS.alert({
-                    content: 'Hello, ' + val
-                });
-                res.cookie("name",val,
-                {
-                    maxAge: 5000,
-                    // expires works the same as the maxAge
-                    expires: new Date('01 12 2021'),
-                    secure: true,
-                    httpOnly: true,
-                    sameSite: 'lax'
-                });
-            } else {
-                popupS.alert({
-                    content: ':('
-                });
-                res.cookie("name","anon",
-                {
-                    maxAge: 5000,
-                    // expires works the same as the maxAge
-                    expires: new Date('01 12 2021'),
-                    secure: true,
-                    httpOnly: true,
-                    sameSite: 'lax'
-                });
-            }
+        return res.redirect('/name');
+       
     }
     MongoClient.connect(
         url,
@@ -89,52 +80,14 @@ function serveExpress() {
                 let a = "";
                 items.forEach( (ele) =>
                     {
-                        a+= `${ele.name} : ${ele.message}`;
+                        a+= `${ele.name} : ${ele.message}\n`;
                     }
                 );
                 console.log(a);
-                res.render(path.join(__dirname, "./templates/main.ejs"), { messageList : a });
+                res.render(path.join(__dirname, "./templates/main.ejs"), { messageList : a , name:req.cookies.name});
 
                 });
           });
-  });
-
-
-  app.get('/getcookie', async (req, res) => {
-      if(req.cookies.name == undefined || req.cookies.name === "")
-      {
-        const val = await prompt('What\'s your name?', 'Bob');
-
-
-                if(val.length !== 0) {
-                    popupS.alert({
-                        content: 'Hello, ' + val
-                    });
-                    res.cookie("name",val,
-                    {
-                        maxAge: 5000,
-                        // expires works the same as the maxAge
-                        expires: new Date('01 12 2021'),
-                        secure: true,
-                        httpOnly: true,
-                        sameSite: 'lax'
-                    });
-                } else {
-                    popupS.alert({
-                        content: ':('
-                    });
-                    res.cookie("name","anon",
-                    {
-                        maxAge: 5000,
-                        // expires works the same as the maxAge
-                        expires: new Date('01 12 2021'),
-                        secure: true,
-                        httpOnly: true,
-                        sameSite: 'lax'
-                    });
-                }
-
-      }
   });
 
   app.post("/", function (req, res) {
@@ -157,12 +110,15 @@ function serveExpress() {
             { name: req.cookies.name, message:message },
             (err, result) => {}
           );
-          emit("/", req.body);
+          //emit("/", req.body);
+          
           return;
         });
-
+        res.redirect('/');
   });
-
+//   io.on('connection', () =>{
+//     console.log('a user is connected')
+//   })
   app.listen(port);
   console.log(
     `Web server started and running at http://localhost:${myArgs[0]}`
