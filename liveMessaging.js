@@ -9,8 +9,7 @@ const cookieParser = require('cookie-parser')
 let app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-const socket = require("socket.io");
-
+var socket = require("socket.io");
 const myArgs = process.argv.slice(2);
 
 
@@ -91,7 +90,7 @@ app.post("/name", async function (req, res) {
 
   app.post("/", function (req, res) {
     let message = req.body["text"];
-
+    io.sockets.emit("chat message", message);
     MongoClient.connect(
       url,
       {
@@ -113,7 +112,8 @@ app.post("/name", async function (req, res) {
           
           return;
         });
-        res.redirect('/');
+        return;
+        //res.redirect('/');
   });
 //   io.on('connection', () =>{
 //     console.log('a user is connected')
@@ -131,7 +131,7 @@ app.post("/name", async function (req, res) {
 
   io.on('connection', (socket) => {
     socket.on('chat message', (msg) => {
-      io.emit('chat message', msg);
+      socket.emit('chat message', msg);
     });
   });
   

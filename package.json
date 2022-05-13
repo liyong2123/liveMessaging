@@ -16,6 +16,7 @@
     "ejs": "^3.1.8",
     "express": "^4.18.1",
     "http": "^0.0.1-security",
+    "localtunnel": "^2.0.2",
     "mongo": "^0.1.0",
     "mongoose": "^6.3.3",
     "node-popup": "^0.1.14",
