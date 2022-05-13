@@ -13,6 +13,10 @@ var io = require('socket.io')(http);
 let name = "";
 const myArgs = process.argv.slice(2);
 
+var prompt = require('prompt');
+prompt.start();
+
+
 const prompts = readline.createInterface(process.stdin, process.stdout);
 
 
@@ -40,34 +44,36 @@ function serveExpress() {
     if(req.cookies.name == undefined || req.cookies.name === "")
     {
 
-
-        if(val.length !== 0) {
-            popupS.alert({
-                content: 'Hello, ' + val
-            });
-            res.cookie("name",val,
-            {
-                maxAge: 5000,
-                // expires works the same as the maxAge
-                expires: new Date('01 12 2021'),
-                secure: true,
-                httpOnly: true,
-                sameSite: 'lax'
-            });
-        } else {
-            popupS.alert({
-                content: ':('
-            });
-            res.cookie("name","anon",
-            {
-                maxAge: 5000,
-                // expires works the same as the maxAge
-                expires: new Date('01 12 2021'),
-                secure: true,
-                httpOnly: true,
-                sameSite: 'lax'
-            });
-        }
+        prompt.get(['username'], function (err, result) {
+            let val = result.name;
+            if(val.length !== 0) {
+                popupS.alert({
+                    content: 'Hello, ' + val
+                });
+                res.cookie("name",val,
+                {
+                    maxAge: 5000,
+                    // expires works the same as the maxAge
+                    expires: new Date('01 12 2021'),
+                    secure: true,
+                    httpOnly: true,
+                    sameSite: 'lax'
+                });
+            } else {
+                popupS.alert({
+                    content: ':('
+                });
+                res.cookie("name","anon",
+                {
+                    maxAge: 5000,
+                    // expires works the same as the maxAge
+                    expires: new Date('01 12 2021'),
+                    secure: true,
+                    httpOnly: true,
+                    sameSite: 'lax'
+                });
+            }
+          });
     }
     MongoClient.connect(
         url,
@@ -82,11 +88,8 @@ function serveExpress() {
           // Specify database you want to access
           let db = client.db(process.env.MONGO_DB_NAME);
           let collection = db.collection(process.env.MONGO_COLLECTION);
-          collection.find({ email: email1 }).toArray(function (err, items) {
-            if (err) throw err;
-            });
+          
             //TODO: Get Messages
-            let a = "";
             collection.find({}).toArray(function (err, items) {
                 if (err) throw err;
                 let a = "";
@@ -95,11 +98,11 @@ function serveExpress() {
                         a+= `${ele.name} : ${ele.message}`;
                     }
                 );
-                res.render(path.join(__dirname, "./templates/main.ejs"), { itemsList : a });
+                console.log(a);
+                res.render(path.join(__dirname, "./templates/main.ejs"), { messageList : a });
 
                 });
           });
-    res.render(path.join(__dirname, "./templates/main.ejs"));
   });
 
 
