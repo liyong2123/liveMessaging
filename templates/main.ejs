@@ -1,54 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <!-- <link rel="stylesheet" href="style.css" /> -->
-    <meta charset="utf-8" />
-    <title>Chat Room</title>
-  </head>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    var socket = io();
+<head>
+  <!-- <link rel="stylesheet" href="style.css" /> -->
+  <meta charset="utf-8" />
+  <title>Chat Room</title>
+</head>
 
-    var messages = document.getElementById("msgs");
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io();
+
+  var messages = document.getElementById("msgs");
+  var input = document.getElementById('text');
+
+
+
+  function submit1() {
     var input = document.getElementById('text');
-
-   
-
-  function submit1()
-  {
-      var input = document.getElementById('text');
-      if (input.value) {
-        socket.emit("chat message", input.value);
-        input.value = "";
-      }
-      form.submit();
-      return true;
+    if (input.value) {
+      socket.emit("chat message", input.value);
+      input.value = "";
+    }
+    form.submit();
+    return true;
   }
-    socket.on("chat message", function (msg) {
-      messages = document.getElementById("msgs");
+  socket.on("chat message", function (msg) {
+    messages = document.getElementById("msgs");
 
-      var item = document.createElement("li");
+    var item = document.createElement("li");
 
-      item.textContent = msg;
-      messages.appendChild(item);
-      window.scrollTo(0, document.body.scrollHeight);
-    });
-  </script>
+    item.textContent = msg;
+    messages.appendChild(item);
+    window.scrollTo(0, document.body.scrollHeight);
+  });
+</script>
 
-  <body>
-    <h1>Messenger</h1>
-    <%- name %>
+<body>
+  <h1>Messenger</h1>
+  <%- name %>
     <br />
-    <div id="msgs" class="msg"><%- messageList %></div>
+    <div id="msgs" class="msg">
+      <%- messageList %>
+    </div>
 
     <form method="post" id="form">
-      <label
-        ><b>Message: </b> <textarea name="text" id="text"></textarea>
+      <label><b>Message: </b> <textarea name="text" id="text"></textarea>
       </label>
 
-      <input type="submit" value="Send Message"  />
+      <button type="submit" value="Send Message" />
     </form>
-    
-  </body>
+
+</body>
+
 </html>
