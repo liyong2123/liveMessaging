@@ -9,6 +9,8 @@ const cookieParser = require('cookie-parser')
 let app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+const socket = require("socket.io");
+
 const myArgs = process.argv.slice(2);
 
 
@@ -53,7 +55,6 @@ app.post("/name", async function (req, res) {
 });
 
   app.get("/", async function (req, res) {
-      console.log(req.cookies.name);
     if(!req.cookies.name|| req.cookies.name === "")
     {
         return res.redirect('/name');
@@ -82,7 +83,6 @@ app.post("/name", async function (req, res) {
                         a+= `${ele.name} : ${ele.message}\n`;
                     }
                 );
-                console.log(a);
                 res.render(path.join(__dirname, "./templates/main.ejs"), { messageList : a , name:req.cookies.name});
 
                 });
@@ -118,7 +118,9 @@ app.post("/name", async function (req, res) {
 //   io.on('connection', () =>{
 //     console.log('a user is connected')
 //   })
-  app.listen(port);
+  let serv = app.listen(port);
+  const io = socket(serv);
+
 
   io.on('connection', (socket) => {
     console.log('a user connected');
