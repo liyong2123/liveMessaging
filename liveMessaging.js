@@ -6,7 +6,6 @@ const MongoClient = require("mongodb").MongoClient;
 const url = "mongodb://127.0.0.1:27017";
 const dotenv = require("dotenv").config();
 const cookieParser = require('cookie-parser')
-const { emit } = require("process");
 let app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
@@ -120,9 +119,25 @@ app.post("/name", async function (req, res) {
 //     console.log('a user is connected')
 //   })
   app.listen(port);
+
+  io.on('connection', (socket) => {
+    console.log('a user connected');
+    socket.on('disconnect', () => {
+      console.log('user disconnected');
+    });
+  });
+
+  io.on('connection', (socket) => {
+    socket.on('chat message', (msg) => {
+      io.emit('chat message', msg);
+    });
+  });
+  
+
   console.log(
     `Web server started and running at http://localhost:${myArgs[0]}`
   );
+  
 }
 
 function ask() {
