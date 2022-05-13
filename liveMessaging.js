@@ -6,20 +6,26 @@ const MongoClient = require("mongodb").MongoClient;
 const url = "mongodb://127.0.0.1:27017";
 const dotenv = require("dotenv").config();
 const cookieParser = require('cookie-parser')
-const popup = require('popups');
-
+const { emit } = require("process");
+let app = express();
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
+let name = "";
 const myArgs = process.argv.slice(2);
+
+const prompts = readline.createInterface(process.stdin, process.stdout);
+
 
 if (myArgs.length !== 1) {
   console.log("Usage liveMessaging.js port");
   process.exit();
 }
-
+serveExpress();
 ask();
+
 
 function serveExpress() {
   //TODO: Add better ejs
-  var app = express();
   app.use(
     bodyParser.urlencoded({
       extended: true,
@@ -30,7 +36,39 @@ function serveExpress() {
 
   var port = process.env.PORT || Number(myArgs[0]);
 
-  app.get("/", function (req, res) {
+  app.get("/", async function (req, res) {
+    if(req.cookies.name == undefined || req.cookies.name === "")
+    {
+
+
+        if(val.length !== 0) {
+            popupS.alert({
+                content: 'Hello, ' + val
+            });
+            res.cookie("name",val,
+            {
+                maxAge: 5000,
+                // expires works the same as the maxAge
+                expires: new Date('01 12 2021'),
+                secure: true,
+                httpOnly: true,
+                sameSite: 'lax'
+            });
+        } else {
+            popupS.alert({
+                content: ':('
+            });
+            res.cookie("name","anon",
+            {
+                maxAge: 5000,
+                // expires works the same as the maxAge
+                expires: new Date('01 12 2021'),
+                secure: true,
+                httpOnly: true,
+                sameSite: 'lax'
+            });
+        }
+    }
     MongoClient.connect(
         url,
         {
@@ -48,18 +86,29 @@ function serveExpress() {
             if (err) throw err;
             });
             //TODO: Get Messages
-            return;
+            let a = "";
+            collection.find({}).toArray(function (err, items) {
+                if (err) throw err;
+                let a = "";
+                items.forEach( (ele) =>
+                    {
+                        a+= `${ele.name} : ${ele.message}`;
+                    }
+                );
+                res.render(path.join(__dirname, "./templates/main.ejs"), { itemsList : a });
+
+                });
           });
     res.render(path.join(__dirname, "./templates/main.ejs"));
   });
 
-  app.get('/getcookie', (req, res) => {
+
+  app.get('/getcookie', async (req, res) => {
       if(req.cookies.name == undefined || req.cookies.name === "")
       {
-        popupS.prompt({
-            content:     'What is your name?',
-            placeholder: '>>>',
-            onSubmit: function(val) {
+        const val = await prompt('What\'s your name?', 'Bob');
+
+
                 if(val.length !== 0) {
                     popupS.alert({
                         content: 'Hello, ' + val
@@ -87,11 +136,35 @@ function serveExpress() {
                         sameSite: 'lax'
                     });
                 }
-            }
-        });
+
       }
   });
 
+  app.post("/", function (req, res) {
+    let message = req.body["text"];
+
+    MongoClient.connect(
+      url,
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      },
+      async (err, client) => {
+        if (err) {
+          return console.log(err);
+        }
+        // Specify database you want to access
+        let db = client.db(process.env.MONGO_DB_NAME);
+        let collection = db.collection(process.env.MONGO_COLLECTION);
+        collection.insertOne(
+            { name: name, message:message },
+            (err, result) => {}
+          );
+          emit("/", req.body);
+          return;
+        });
+
+  });
 
   app.listen(port);
   console.log(
