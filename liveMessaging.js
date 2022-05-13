@@ -16,7 +16,7 @@ if (myArgs.length !== 1) {
 ask();
 
 function serveExpress() {
-  //TODO: Implement
+  //TODO: Add better ejs
   var app = express();
   app.use(
     bodyParser.urlencoded({
@@ -27,6 +27,30 @@ function serveExpress() {
   var port = process.env.PORT || Number(myArgs[0]);
 
   app.get("/", function (req, res) {
+    MongoClient.connect(
+        url,
+        {
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+        },
+        (err, client) => {
+          if (err) {
+            return console.log(err);
+          }
+          // Specify database you want to access
+          let db = client.db(process.env.MONGO_DB_NAME);
+          let collection = db.collection(process.env.MONGO_COLLECTION);
+          collection.find({ email: email1 }).toArray(function (err, items) {
+            if (err) throw err;
+  
+            res.render(path.join(__dirname, "./templates/applyResponse.ejs"), {
+              name: items[0].name,
+              email: items[0].email,
+              gpa: items[0].gpa,
+              bI: items[0].info,
+            });
+            return;
+          });
     res.render(path.join(__dirname, "./templates/main.ejs"));
   });
 
