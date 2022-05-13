@@ -11,6 +11,9 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var socket = require("socket.io");
 const myArgs = process.argv.slice(2);
+const jsdom = require('jsdom')
+const dom = new jsdom.JSDOM("")
+const jquery = require('jquery')(dom.window)
 
 
 
@@ -57,7 +60,6 @@ app.post("/name", async function (req, res) {
     if(!req.cookies.name|| req.cookies.name === "")
     {
         return res.redirect('/name');
-       
     }
     MongoClient.connect(
         url,
@@ -76,21 +78,30 @@ app.post("/name", async function (req, res) {
             //TODO: Get Messages
             collection.find({}).toArray(function (err, items) {
                 if (err) throw err;
-                let a = "";
+                let a = "<pre>";
                 items.forEach( (ele) =>
                     {
-                        a+= `${ele.name} : ${ele.message}\n`;
+                        a+= ` [${ele.time}]${ele.name} : ${ele.message}<br>`;
                     }
                 );
-                res.render(path.join(__dirname, "./templates/main.ejs"), { messageList : a , name:req.cookies.name});
+                a+="</pre>"
+                let rn = new Date();
+                let dateTime = rn.toLocaleDateString() + " " + rn.toLocaleTimeString();
+                io.sockets.emit("new user", {"name": req.cookies.name, "time": dateTime});
 
+                res.render(path.join(__dirname, "./templates/main.ejs"), { messageList : a , name:req.cookies.name});
+                    
                 });
           });
+          
   });
 
-  app.post("/", function (req, res) {
+  app.post("/updateMessages", function (req, res) {
+    console.log(req.body);
     let message = req.body["text"];
-    io.sockets.emit("chat message", message);
+    let rn = new Date();
+    let dateTime = rn.toLocaleDateString() + " " + rn.toLocaleTimeString();
+    io.sockets.emit("chat message", {"message":message, "name": req.cookies.name, "time": dateTime});
     MongoClient.connect(
       url,
       {
@@ -105,19 +116,24 @@ app.post("/name", async function (req, res) {
         let db = client.db(process.env.MONGO_DB_NAME);
         let collection = db.collection(process.env.MONGO_COLLECTION);
         collection.insertOne(
-            { name: req.cookies.name, message:message },
+            { name: req.cookies.name, message:message , time:dateTime},
             (err, result) => {}
           );
           //emit("/", req.body);
           
-          return;
         });
-        return;
         //res.redirect('/');
   });
 //   io.on('connection', () =>{
 //     console.log('a user is connected')
 //   })
+
+app.post("/leaving", function (req, res) {
+  let rn = new Date();
+    let dateTime = rn.toLocaleDateString() + " " + rn.toLocaleTimeString();
+    io.sockets.emit("remove user", {"name": req.cookies.name, "time": dateTime});
+  res.end();
+});
   let serv = app.listen(port);
   const io = socket(serv);
 
