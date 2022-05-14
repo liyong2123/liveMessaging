@@ -15,7 +15,7 @@
     var messages = document.getElementById("msgs");
     var input = document.getElementById('text');
     let subButton = document.getElementById("submit1");
-
+    window.onbeforeunload = null;
     $(window).bind(
     "beforeunload", 
     function() { 
@@ -25,7 +25,22 @@
         req.send("");
         return false;
     }
-    )
+    );
+
+    function delMessage()
+    {
+        let pass = prompt("Password:");
+        if(pass !== "123")
+        {
+            alert("ErRRRRRRR Wrong password dumbass");
+            return;
+        }
+        var req = new XMLHttpRequest();
+        req.open("POST", "/deleteMessages", true);
+        req.send("");
+        messages.innerHTML = "";
+        return false;
+    }
 
     function subasd()
     {
@@ -34,12 +49,17 @@
         req.open("POST", "/updateMessages", true);
         req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
         req.send("text="+input.value);
-       input.value = '';
+        input.value = '';
         return false;
     }
    
+    socket.on("refresh", function(msg)
+    {
+        messages.innerHTML = "";
+    });
 
     socket.on("chat message", function (msg) {
+        console.log("Got it");
       messages = document.getElementById("msgs");
 
       var item = document.createElement("li");
@@ -75,12 +95,13 @@
     <br />
     <div id="msgs" class="msg"><%- messageList %></div>
 
-    <form>
+    <form method="post">
       <label
         ><b>Message: </b> <textarea name="text" id="text"></textarea>
       </label>
 
       <button type="submit"  id="submit1" onclick="return subasd()">Send Message</button>
+      <button type="button"  id="submit2" onclick="delMessage()">Delete All Prev Messages</button>
       <button type="reset">Clear</button>
     </form>
     

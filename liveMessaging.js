@@ -45,9 +45,9 @@ function serveExpress() {
 
   app.post("/name", async function (req, res) {
     let name = req.body.name;
-
-    res.cookie("name", name);
-
+    if (!req.cookies.name || req.cookies.name === "") {
+      res.cookie("name", name);
+    }
     return res.redirect("/");
   });
 
@@ -69,37 +69,60 @@ function serveExpress() {
         let db = client.db(process.env.MONGO_DB_NAME);
         let collection = db.collection(process.env.MONGO_COLLECTION);
 
+        let rn = new Date();
+        let dateTime =
+          rn.toLocaleDateString() + " " + rn.toLocaleTimeString();
+        collection.insertOne(
+          {
+            name: req.cookies.name,
+            message: `${req.cookies.name} has Joined`,
+            time: dateTime,
+          },
+          (err, result) => {}
+        );
         //TODO: Get Messages
         collection.find({}).toArray(function (err, items) {
           if (err) throw err;
+          
           let a = "<pre>";
           items.forEach((ele) => {
             a += ` [${ele.time}]${ele.name} : ${ele.message}<br>`;
           });
           a += "</pre>";
-          let rn = new Date();
-          let dateTime =
-            rn.toLocaleDateString() + " " + rn.toLocaleTimeString();
+     
           io.sockets.emit("new user", {
             name: req.cookies.name,
             time: dateTime,
           });
 
-          collection.insertOne(
-            {
-              name: req.cookies.name,
-              message: `${req.cookies.name} has Joined`,
-              time: dateTime,
-            },
-            (err, result) => {}
-          );
+          
           //emit("/", req.body);
 
           res.render(path.join(__dirname, "./templates/main.ejs"), {
             messageList: a,
-            name: req.cookies.name,
+            name: `Hi ${req.cookies.name}!`,
           });
         });
+      }
+    );
+  });
+
+  app.post("/deleteMessages", function (req, res) {
+    MongoClient.connect(
+      url,
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      },
+      async (err, client) => {
+        if (err) {
+          return console.log(err);
+        }
+        // Specify database you want to access
+        let db = client.db(process.env.MONGO_DB_NAME);
+        let collection = db.collection(process.env.MONGO_COLLECTION);
+        collection.deleteMany( {} );
+        io.sockets.emit("refresh", { });
       }
     );
   });
