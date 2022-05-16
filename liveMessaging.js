@@ -73,8 +73,7 @@ function serveExpress() {
     }
     let asd = "";
     MongoClient.connect(
-      process.env.MONGO_URL ||
-        "mongodb+srv://liveMessaging:live1234@cluster0.gn3dm.mongodb.net/myFirstDatabase?retryWrites=true&w=majority",
+      process.env.MONGO_URL
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
