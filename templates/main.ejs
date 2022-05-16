@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- <link rel="stylesheet" href="style.css" /> -->
+    <meta charset="utf-8" />
+    <title>Chat Room</title>
+  </head>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+  <script>
+    var socket = io();
+
+    var messages = document.getElementById("msgs");
+    var input = document.getElementById('text');
+    let subButton = document.getElementById("submit1");
+    window.onbeforeunload = null;
+    $(window).bind(
+    "beforeunload", 
+    function() { 
+        var req = new XMLHttpRequest();
+        req.open("POST", "/leaving", true);
+        req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        req.send("");
+        return false;
+    }
+    );
+
+    function delMessage()
+    {
+        let pass = prompt("Password:");
+        if(pass !== "123")
+        {
+            alert("ErRRRRRRR Wrong password dumbass");
+            return;
+        }
+        var req = new XMLHttpRequest();
+        req.open("POST", "/deleteMessages", true);
+        req.send("");
+        messages.innerHTML = "";
+        return false;
+    }
+
+    function subasd()
+    {
+        var input = document.getElementById('text');
+        var req = new XMLHttpRequest();
+        req.open("POST", "/updateMessages", true);
+        req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        req.send("text="+input.value);
+        input.value = '';
+        return false;
+    }
+   
+    socket.on("refresh", function(msg)
+    {
+        messages.innerHTML = "";
+    });
+
+    socket.on("chat message", function (msg) {
+        console.log("Got it");
+      messages = document.getElementById("msgs");
+
+      var item = document.createElement("li");
+
+      item.textContent = `[${msg["time"]}] ${msg["name"]} : ${msg["message"]}`;
+      messages.appendChild(item);
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    socket.on("new user", function (msg) {
+      messages = document.getElementById("msgs");
+
+      var item = document.createElement("li");
+
+      item.textContent = `[${msg["time"]}] ${msg["name"]} has Joined`;
+      messages.appendChild(item);
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+
+    socket.on("remove user", function (msg) {
+      messages = document.getElementById("msgs");
+
+      var item = document.createElement("li");
+
+      item.textContent = `[${msg["time"]}] ${msg["name"]} has Left`;
+      messages.appendChild(item);
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+  </script>
+
+  <body>
+    <h1>Messenger</h1>
+    <%- name %>
+    <br />
+    <div id="msgs" class="msg"><%- messageList %></div>
+
+    <form method="post">
+      <label
+        ><b>Message: </b> <textarea name="text" id="text"></textarea>
+      </label>
+
+      <button type="submit"  id="submit1" onclick="return subasd()">Send Message</button>
+      <button type="button"  id="submit2" onclick="delMessage()">Delete All Prev Messages</button>
+      <button type="reset">Clear</button>
+    </form>
+    
+  </body>
+</html>
