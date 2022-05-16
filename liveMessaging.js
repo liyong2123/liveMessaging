@@ -73,7 +73,7 @@ function serveExpress() {
     }
     let asd = "";
     MongoClient.connect(
-      process.env.MONGO_URL
+      process.env.MONGO_URL,
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
