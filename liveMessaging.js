@@ -3,24 +3,42 @@ const express = require("express");
 const path = require("path");
 const bodyParser = require("body-parser");
 const MongoClient = require("mongodb").MongoClient;
-const url = "mongodb://127.0.0.1:27017";
 const dotenv = require("dotenv").config();
 const cookieParser = require("cookie-parser");
 let app = express();
-var http = require("http").Server(app);
-var io = require("socket.io")(http);
 var socket = require("socket.io");
 const myArgs = process.argv.slice(2);
 const jsdom = require("jsdom");
 const dom = new jsdom.JSDOM("");
 const jquery = require("jquery")(dom.window);
+const axios = require("axios");
 
 const prompts = readline.createInterface(process.stdin, process.stdout);
 
-if (myArgs.length !== 1) {
-  console.log("Usage liveMessaging.js port");
-  process.exit();
+async function apiCallBadWordFilter(msg) {
+  return new Promise((resolve) => {
+    const encodedParams = new URLSearchParams();
+
+    const options = {
+      method: "GET",
+      url: `https://www.purgomalum.com/service/json?text=${msg}`,
+    };
+
+    axios
+      .request(options)
+      .then(function (response) {
+        resolve(response.data["result"]);
+      })
+      .catch(function (error) {
+        console.error(error);
+      });
+  });
 }
+
+// if (myArgs.length !== 1) {
+//   console.log("Usage liveMessaging.js port");
+//   process.exit();
+// }
 serveExpress();
 ask();
 
@@ -33,11 +51,9 @@ function serveExpress() {
   );
   app.set("view engine", "ejs");
   app.use(cookieParser());
+  app.use(express.static(__dirname + "/"));
 
   var port = process.env.PORT || Number(myArgs[0]);
-
-  //    let val = prompt("Enter your name", "");
-  //
 
   app.get("/name", async function (req, res) {
     res.render(path.join(__dirname, "./templates/name.ejs"));
@@ -55,8 +71,10 @@ function serveExpress() {
     if (!req.cookies.name || req.cookies.name === "") {
       return res.redirect("/name");
     }
+    let asd = "";
     MongoClient.connect(
-      url,
+      process.env.MONGO_URL ||
+        "mongodb+srv://liveMessaging:live1234@cluster0.gn3dm.mongodb.net/myFirstDatabase?retryWrites=true&w=majority",
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
@@ -65,13 +83,13 @@ function serveExpress() {
         if (err) {
           return console.log(err);
         }
+        conn = client;
         // Specify database you want to access
         let db = client.db(process.env.MONGO_DB_NAME);
         let collection = db.collection(process.env.MONGO_COLLECTION);
 
         let rn = new Date();
-        let dateTime =
-          rn.toLocaleDateString() + " " + rn.toLocaleTimeString();
+        let dateTime = rn.toLocaleDateString() + " " + rn.toLocaleTimeString();
         collection.insertOne(
           {
             name: req.cookies.name,
@@ -80,26 +98,20 @@ function serveExpress() {
           },
           (err, result) => {}
         );
-        //TODO: Get Messages
         collection.find({}).toArray(function (err, items) {
           if (err) throw err;
-          
-          let a = "<pre>";
+          asd = "";
           items.forEach((ele) => {
-            a += ` [${ele.time}]${ele.name} : ${ele.message}<br>`;
+            asd += `<div class="box sb2"> [${ele.time}]${ele.name} : ${ele.message}</div><br>`;
           });
-          a += "</pre>";
-     
+          asd += "";
           io.sockets.emit("new user", {
             name: req.cookies.name,
             time: dateTime,
           });
-
-          
-          //emit("/", req.body);
-
+          client.close();
           res.render(path.join(__dirname, "./templates/main.ejs"), {
-            messageList: a,
+            messageList: asd,
             name: `Hi ${req.cookies.name}!`,
           });
         });
@@ -107,9 +119,13 @@ function serveExpress() {
     );
   });
 
-  app.post("/deleteMessages", function (req, res) {
+  app.post("/deleteMessages", async function (req, res) {
+    if (req.body.pass !== "1234") {
+      res.end();
+      return;
+    }
     MongoClient.connect(
-      url,
+      process.env.MONGO_URL,
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
@@ -121,24 +137,30 @@ function serveExpress() {
         // Specify database you want to access
         let db = client.db(process.env.MONGO_DB_NAME);
         let collection = db.collection(process.env.MONGO_COLLECTION);
-        collection.deleteMany( {} );
-        io.sockets.emit("refresh", { });
+        await collection.deleteMany({});
+        io.sockets.emit("refresh", {});
+        client.close();
+        console.log("ASD");
+        res.end();
       }
     );
   });
 
-  app.post("/updateMessages", function (req, res) {
-    console.log(req.body);
+  app.post("/updateMessages", async function (req, res) {
     let message = req.body["text"];
     let rn = new Date();
     let dateTime = rn.toLocaleDateString() + " " + rn.toLocaleTimeString();
+    if(message !== ""){
+      message = await apiCallBadWordFilter(message);
+    }
+    
     io.sockets.emit("chat message", {
       message: message,
       name: req.cookies.name,
       time: dateTime,
     });
-    MongoClient.connect(
-      url,
+    await MongoClient.connect(
+      process.env.MONGO_URL,
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
@@ -148,28 +170,29 @@ function serveExpress() {
           return console.log(err);
         }
         // Specify database you want to access
+
         let db = client.db(process.env.MONGO_DB_NAME);
         let collection = db.collection(process.env.MONGO_COLLECTION);
-        collection.insertOne(
+        await collection.insertOne(
           { name: req.cookies.name, message: message, time: dateTime },
           (err, result) => {}
         );
-        //emit("/", req.body);
+        client.close();
+        res.end();
       }
     );
     //res.redirect('/');
-    res.end();
   });
   //   io.on('connection', () =>{
   //     console.log('a user is connected')
   //   })
 
-  app.post("/leaving", function (req, res) {
+  app.post("/leaving", async function (req, res) {
     let rn = new Date();
     let dateTime = rn.toLocaleDateString() + " " + rn.toLocaleTimeString();
     io.sockets.emit("remove user", { name: req.cookies.name, time: dateTime });
-    MongoClient.connect(
-      url,
+    await MongoClient.connect(
+      process.env.MONGO_URL,
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
@@ -181,7 +204,7 @@ function serveExpress() {
         // Specify database you want to access
         let db = client.db(process.env.MONGO_DB_NAME);
         let collection = db.collection(process.env.MONGO_COLLECTION);
-        collection.insertOne(
+        await collection.insertOne(
           {
             name: req.cookies.name,
             message: `${req.cookies.name} has Left`,
@@ -189,6 +212,7 @@ function serveExpress() {
           },
           (err, result) => {}
         );
+        client.close();
       }
     );
     res.end();
@@ -218,6 +242,7 @@ function ask() {
   prompts.question("Type stop to shutdown the server: ", (response) => {
     // check the response.
     if (response === "stop") {
+      console.log("Exiting");
       process.exit();
     }
   });
